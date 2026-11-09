@@ -70,7 +70,7 @@ services:
     binds:
       - /lzcapp/var/mutdata/rustfs:/data
   bucket-init:
-    # upstream: amazon/aws-cli (one-shot: create bucket + CORS, lite compose)
+    # upstream: amazon/aws-cli:2.39.6
     image: docker.1ms.run/amazon/aws-cli:2.39.6
     depends_on:
       - rustfs
