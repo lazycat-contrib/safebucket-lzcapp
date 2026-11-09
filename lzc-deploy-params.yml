@@ -1,0 +1,53 @@
+params:
+  - id: sb_admin_mail_q4xk
+    type: string
+    name: "管理员邮箱"
+    description: "SafeBucket 管理员登录邮箱"
+    default_value: "admin@safebucket.io"
+    optional: false
+  - id: sb_admin_pass_q4xk
+    type: secret
+    name: "管理员密码"
+    description: "SafeBucket 管理员密码（已预置随机值，可在部署参数中查看）"
+    default_value: "o9Tc3hqXfMHDdhl1"
+    optional: false
+  - id: sb_token_q4xk
+    type: secret
+    name: "Token 密钥"
+    description: "会话令牌签名密钥（已预置随机值，应用自动使用）"
+    default_value: "nitL0Mk7R994A9LqTavf38QLv1OHqx"
+    optional: false
+  - id: sb_mfa_key_q4xk
+    type: secret
+    name: "MFA 加密密钥"
+    description: "两步验证 AES-256 加密密钥，须为 32 字符（已预置随机值）"
+    default_value: "gjAeBZZBwtg2cWpPOVxxCyKMhPQSWVZb"
+    optional: false
+  - id: sb_rustfs_ak_q4xk
+    type: secret
+    name: "对象存储 Access Key"
+    description: "RustFS 访问密钥（已预置随机值，应用自动使用）"
+    default_value: "1a8781684f775ca4"
+    optional: false
+  - id: sb_rustfs_sk_q4xk
+    type: secret
+    name: "对象存储 Secret Key"
+    description: "RustFS 私有密钥（已预置随机值，应用自动使用）"
+    default_value: "PFVGx4oybuVbeGI5XqS7okF"
+    optional: false
+
+locales:
+  zh:
+    sb_admin_mail_q4xk: {name: "管理员邮箱", description: "SafeBucket 管理员登录邮箱"}
+    sb_admin_pass_q4xk: {name: "管理员密码", description: "SafeBucket 管理员密码（已预置随机值，可在部署参数中查看）"}
+    sb_token_q4xk: {name: "Token 密钥", description: "会话令牌签名密钥（已预置随机值，应用自动使用）"}
+    sb_mfa_key_q4xk: {name: "MFA 加密密钥", description: "两步验证 AES-256 加密密钥，须为 32 字符（已预置随机值）"}
+    sb_rustfs_ak_q4xk: {name: "对象存储 Access Key", description: "RustFS 访问密钥（已预置随机值，应用自动使用）"}
+    sb_rustfs_sk_q4xk: {name: "对象存储 Secret Key", description: "RustFS 私有密钥（已预置随机值，应用自动使用）"}
+  en:
+    sb_admin_mail_q4xk: {name: "Admin email", description: "SafeBucket admin login email"}
+    sb_admin_pass_q4xk: {name: "Admin password", description: "SafeBucket admin password (pre-filled with a random value, viewable in deploy params)"}
+    sb_token_q4xk: {name: "Token secret", description: "Session token signing secret (pre-filled with a random value, used automatically)"}
+    sb_mfa_key_q4xk: {name: "MFA encryption key", description: "AES-256 key for MFA, must be 32 characters (pre-filled with a random value)"}
+    sb_rustfs_ak_q4xk: {name: "Storage access key", description: "RustFS access key (pre-filled with a random value, used automatically)"}
+    sb_rustfs_sk_q4xk: {name: "Storage secret key", description: "RustFS secret key (pre-filled with a random value, used automatically)"}

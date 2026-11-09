@@ -1,0 +1,115 @@
+application:
+  subdomain: safebucket
+  multi_instance: false
+  # Login page + accounts exist, but the only account is the env-injected admin
+  # (no self-registration) -> keep platform auth as first line, no public_path
+  # (wiki-go / openbudgeteer precedent).
+  upstreams:
+    - location: /package-licenses/
+      backend: file:///lzcapp/pkg/content/licenses/
+    - location: /
+      backend: http://safebucket:8080/
+  ingress:
+    # presigned URLs point the browser straight at RustFS (owntracks tcp precedent)
+    - protocol: tcp
+      port: 9000
+      service: rustfs
+services:
+  safebucket:
+    # upstream: safebucket/safebucket:0.8.1
+    image: docker.1ms.run/safebucket/safebucket:0.8.1
+    depends_on:
+      - bucket-init
+    environment:
+      - APP__LOG_LEVEL=info
+      - APP__PROFILE=default
+      - APP__API_URL=https://{{ .S.AppDomain }}
+      - APP__WEB_URL=https://{{ .S.AppDomain }}
+      - APP__PORT=8080
+      - APP__TRUSTED_PROXIES=127.0.0.1/32,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+      - APP__STATIC_FILES__ENABLED=true
+      - APP__TOKEN_SECRET={{ .U.sb_token_q4xk }}
+      - APP__ADMIN_EMAIL={{ .U.sb_admin_mail_q4xk }}
+      - APP__ADMIN_PASSWORD={{ .U.sb_admin_pass_q4xk }}
+      - APP__ALLOWED_ORIGINS=https://{{ .S.AppDomain }}
+      - APP__TRASH_RETENTION_DAYS=7
+      - APP__MFA_ENCRYPTION_KEY={{ .U.sb_mfa_key_q4xk }}
+      - APP__MFA_REQUIRED=false
+      - APP__MAX_UPLOAD_SIZE=53687091200
+      - DATABASE__TYPE=sqlite
+      - DATABASE__SQLITE__PATH=/app/data/safebucket.db
+      - CACHE__TYPE=memory
+      - STORAGE__TYPE=rustfs
+      - STORAGE__RUSTFS__BUCKET_NAME=safebucket
+      - STORAGE__RUSTFS__ENDPOINT=rustfs:9000
+      - STORAGE__RUSTFS__EXTERNAL_ENDPOINT=http://{{ .S.AppDomain }}:9000
+      - STORAGE__RUSTFS__ACCESS_KEY={{ .U.sb_rustfs_ak_q4xk }}
+      - STORAGE__RUSTFS__SECRET_KEY={{ .U.sb_rustfs_sk_q4xk }}
+      - EVENTS__TYPE=memory
+      - EVENTS__QUEUES__NOTIFICATIONS__NAME=safebucket-notifications
+      - EVENTS__QUEUES__BUCKET_EVENTS__NAME=safebucket-bucket-events
+      - EVENTS__QUEUES__OBJECT_DELETION__NAME=safebucket-object-deletion
+      - NOTIFIER__TYPE=filesystem
+      - NOTIFIER__FILESYSTEM__DIRECTORY=/app/data/notifications
+      - ACTIVITY__TYPE=filesystem
+      - ACTIVITY__FILESYSTEM__DIRECTORY=/app/data/activity
+      - AUTH__PROVIDERS__KEYS=local
+      - AUTH__PROVIDERS__LOCAL__NAME=local
+      - AUTH__PROVIDERS__LOCAL__TYPE=local
+      - AUTH__PROVIDERS__LOCAL__SHARING__ALLOWED=true
+      - GOGC=50
+    binds:
+      - /lzcapp/var/mutdata/data:/app/data
+  rustfs:
+    # upstream: rustfs/rustfs:1.0.4
+    image: docker.1ms.run/rustfs/rustfs:1.0.4
+    environment:
+      - RUSTFS_ACCESS_KEY={{ .U.sb_rustfs_ak_q4xk }}
+      - RUSTFS_SECRET_KEY={{ .U.sb_rustfs_sk_q4xk }}
+      - TZ=Asia/Shanghai
+    binds:
+      - /lzcapp/var/mutdata/rustfs:/data
+  bucket-init:
+    # upstream: amazon/aws-cli (one-shot: create bucket + CORS, lite compose)
+    image: docker.1ms.run/amazon/aws-cli:2.39.6
+    depends_on:
+      - rustfs
+    environment:
+      - AWS_ACCESS_KEY_ID={{ .U.sb_rustfs_ak_q4xk }}
+      - AWS_SECRET_ACCESS_KEY={{ .U.sb_rustfs_sk_q4xk }}
+      - AWS_RETRY_MODE=standard
+      - AWS_MAX_ATTEMPTS=5
+      - AWS_REGION=us-east-1
+      - BUCKET_NAME=safebucket
+      - ENDPOINT_URL=http://rustfs:9000
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |-
+        set -eu
+        echo "Waiting for RustFS bucket..."
+        while ! aws s3api head-bucket --bucket "" --endpoint-url "" 2>/dev/null; do
+          echo "Creating bucket ..."
+          aws s3api create-bucket --bucket "" --endpoint-url "" 2>/dev/null || true
+          sleep 2
+        done
+        echo "Applying CORS policy..."
+        aws s3api put-bucket-cors --bucket "" --endpoint-url "" --cors-configuration "{\"CORSRules\":[{\"AllowedHeaders\":[\"*\"],\"AllowedMethods\":[\"GET\",\"PUT\",\"POST\",\"DELETE\",\"HEAD\"],\"AllowedOrigins\":[\"*\"],\"ExposeHeaders\":[\"ETag\"]}]}"
+        echo "Buckets configured successfully."
+usage: |
+  SafeBucket 是自托管文件分享平台（Apache-2.0）：预签名 URL 直传下载、
+  链接分享、回收站保留策略、可选两步验证。文件存储在本机 RustFS 对象存储中。
+
+  使用方法：
+  1. 部署时打开应用，用部署参数中的管理员邮箱与密码登录
+     （默认邮箱 admin@safebucket.io，密码为部署系统注入的随机值，可在部署参数中查看/修改）。
+  2. 登录后创建 Bucket 并上传文件，生成分享链接。
+
+  说明：
+  - 唯一账号由环境变量注入（无自助注册页），因此未开放 public_path，
+    由平台入口鉴权作为第一道防线。
+  - 文件上传/下载走预签名 URL 浏览器直连 RustFS，需要 TCP 9000 端口
+    对外放行（平台 ingress 已声明）；该端点为 HTTP 明文，仅限可信内网使用。
+  - 数据保存在 /lzcapp/var/mutdata（SQLite + 对象存储），卸载会一并删除。
+  - 本包未做实机验证，功能以官方文档为准：https://github.com/safebucket/safebucket
+  - 许可证 Apache-2.0，随包分发，见 /package-licenses/。

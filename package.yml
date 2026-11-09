@@ -1,0 +1,18 @@
+package: community.lazycat.app.safebucket
+name: SafeBucket
+version: 0.8.1
+description: "Self-hosted file sharing platform with presigned S3 uploads, link sharing, trash retention and optional MFA."
+min_os_version: "1.5.0"
+homepage: https://github.com/safebucket/safebucket
+author: SafeBucket
+license: "Apache-2.0"
+permissions:
+  required:
+    - net.internet
+locales:
+  zh:
+    name: SafeBucket
+    description: "自托管文件分享平台：预签名 URL 直传、链接分享、回收站保留策略与可选两步验证，文件存储在本机对象存储。"
+  en:
+    name: SafeBucket
+    description: "Self-hosted file sharing platform with presigned S3 uploads, link sharing, trash retention and optional MFA."
